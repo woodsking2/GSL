@@ -30,12 +30,20 @@ using namespace gsl;
 
 namespace
 {
-struct BaseClass
+
+struct Base
 {
+	Base(int a) : baseField(a) {}
+	int baseField;
 };
-struct DerivedClass : BaseClass
+
+struct Derived : public Base
 {
+	Derived(int a, int b) : Base(a), derivedField(b) {}
+
+	int derivedField;
 };
+
 }
 
 SUITE(span_tests)
@@ -742,20 +750,33 @@ SUITE(span_tests)
             auto cs = make_span(cv);
             CHECK(cs.size() == narrow_cast<std::ptrdiff_t>(cv.size()) && cs.data() == cv.data());
         }
+
+#ifdef CONFIRM_COMPILATION_ERRORS
+        {
+			vector<Derived> v2 { { 1,10 },{ 2,20 },{ 3,30 } };
+			span<Base> s(v2);
+
+			CHECK(narrow_cast<vector<Derived>::size_type>(s.size()) == v2.size());
+			for (int i = 0; i < s.size(); ++i)
+			{
+				CHECK(s[i].baseField == i);
+			}
+		}
+#endif
     }
 
     TEST(from_convertible_span_constructor)
     {
         {
-            span<DerivedClass> avd;
-            span<const DerivedClass> avcd = avd;
+            span<Derived> avd;
+            span<const Derived> avcd = avd;
             static_cast<void>(avcd);
         }
 
         {
 #ifdef CONFIRM_COMPILATION_ERRORS
-            span<DerivedClass> avd;
-            span<BaseClass> avb = avd;
+            span<Derived> avd;
+            span<Base> avb = avd;
             static_cast<void>(avb);
 #endif
         }

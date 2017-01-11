@@ -396,22 +396,24 @@ public:
     // NB: the SFINAE here uses .data() as a incomplete/imperfect proxy for the requirement
     // on Container to be a contiguous sequence container.
     template <class Container,
+			  class ValueType = decltype(*std::declval<typename Container::pointer>()),
               class = std::enable_if_t<
-                  !details::is_span<Container>::value && !details::is_std_array<Container>::value &&
+                  !details::is_span<Container>::value && !details::is_std_array<Container>::value &&                  
                   std::is_convertible<typename Container::pointer, pointer>::value &&
-                  std::is_convertible<typename Container::pointer,
-                                      decltype(std::declval<Container>().data())>::value>>
+                  std::is_same<std::decay_t<ValueType>, std::decay_t<element_type>>::value &&
+                  std::is_convertible<typename Container::pointer, decltype(std::declval<Container>().data())>::value>>
     constexpr span(Container& cont) : span(cont.data(), narrow<index_type>(cont.size()))
     {
     }
 
     template <class Container,
+              class ValueType = decltype(*std::declval<typename Container::pointer>()),
               class = std::enable_if_t<
                   std::is_const<element_type>::value && !details::is_span<Container>::value &&
                   std::is_convertible<typename Container::pointer, pointer>::value &&
-                  std::is_convertible<typename Container::pointer,
-                                      decltype(std::declval<Container>().data())>::value>>
-    constexpr span(const Container& cont) : span(cont.data(), narrow<index_type>(cont.size()))
+                  std::is_same<std::decay_t<ValueType>, std::decay_t<element_type>>::value &&
+                  std::is_convertible<typename Container::pointer, decltype(std::declval<Container>().data())>::value>>
+		constexpr span(const Container& cont) : span(cont.data(), narrow<index_type>(cont.size()))
     {
     }
 

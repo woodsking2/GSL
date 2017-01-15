@@ -352,21 +352,23 @@ public:
 
     // from containers. Containers must have a pointer type and data() function signatures
     template <class Container,
-              class ContainerValueType = Container::value_type,
+        class IteratorTraits = std::iterator_traits<typename Container::iterator>,
               class = std::enable_if_t<
         !details::is_basic_string_span<Container>::value && !details::is_std_array<Container>::value && !details::is_span<Container>::value &&
-        details::is_allowed_element_type_conversion<std::decay_t<ContainerValueType>, std::decay_t<element_type>>::value &&
-        std::is_convertible<typename Container::pointer, decltype(std::declval<Container>().data())>::value>>
+        std::is_same<typename IteratorTraits::iterator_category, std::random_access_iterator_tag>::value &&
+        details::is_allowed_element_type_conversion<std::decay_t<typename IteratorTraits::value_type>, std::decay_t<element_type>>::value &&
+        std::is_convertible<typename IteratorTraits::pointer, decltype(std::declval<Container>().data())>::value>>
         constexpr basic_string_span(Container& cont) : span_(cont)
     {
     }
 
     template <class Container,
-              class ContainerValueType = Container::value_type,
+        class IteratorTraits = std::iterator_traits<typename Container::iterator>,
               class = std::enable_if_t<
         std::is_const<element_type>::value && !details::is_basic_string_span<Container>::value && !details::is_span<Container>::value &&
-        details::is_allowed_element_type_conversion<std::decay_t<ContainerValueType>, std::decay_t<element_type>>::value &&
-        std::is_convertible<typename Container::pointer, decltype(std::declval<Container>().data())>::value>>
+        std::is_same<typename IteratorTraits::iterator_category, std::random_access_iterator_tag>::value &&
+        details::is_allowed_element_type_conversion<std::decay_t<typename IteratorTraits::value_type>, std::decay_t<element_type>>::value &&
+        std::is_convertible<typename IteratorTraits::pointer, decltype(std::declval<Container>().data())>::value>>
         constexpr basic_string_span(const Container& cont) : span_(cont)
     {
     }

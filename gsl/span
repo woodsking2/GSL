@@ -387,31 +387,27 @@ public:
     {
     }
 
-    template<class ArrayElementType = std::add_pointer<element_type>>
-    constexpr span(const std::unique_ptr<ArrayElementType>& ptr, index_type count) : storage_(ptr.get(), count) {}
-
+    constexpr span(const std::unique_ptr<ElementType[]>& ptr, index_type count) : storage_(ptr.get(), count) {}
     constexpr span(const std::unique_ptr<ElementType>& ptr) : storage_(ptr.get(), ptr.get() ? 1 : 0) {}
     constexpr span(const std::shared_ptr<ElementType>& ptr) : storage_(ptr.get(), ptr.get() ? 1 : 0) {}
 
     // NB: the SFINAE here uses .data() as a incomplete/imperfect proxy for the requirement
     // on Container to be a contiguous sequence container.
     template <class Container,
-			  class ValueType = decltype(*std::declval<typename Container::pointer>()),
+        class ContainerValueType = typename Container::value_type,
               class = std::enable_if_t<
                   !details::is_span<Container>::value && !details::is_std_array<Container>::value &&                  
-                  std::is_convertible<typename Container::pointer, pointer>::value &&
-                  std::is_same<std::decay_t<ValueType>, std::decay_t<element_type>>::value &&
+                  details::is_allowed_element_type_conversion<std::decay_t<ContainerValueType>, std::decay_t<element_type>>::value &&
                   std::is_convertible<typename Container::pointer, decltype(std::declval<Container>().data())>::value>>
     constexpr span(Container& cont) : span(cont.data(), narrow<index_type>(cont.size()))
     {
     }
 
     template <class Container,
-              class ValueType = decltype(*std::declval<typename Container::pointer>()),
+        class ContainerValueType = typename Container::value_type,
               class = std::enable_if_t<
                   std::is_const<element_type>::value && !details::is_span<Container>::value &&
-                  std::is_convertible<typename Container::pointer, pointer>::value &&
-                  std::is_same<std::decay_t<ValueType>, std::decay_t<element_type>>::value &&
+                  details::is_allowed_element_type_conversion<std::decay_t<ContainerValueType>, std::decay_t<element_type>>::value &&
                   std::is_convertible<typename Container::pointer, decltype(std::declval<Container>().data())>::value>>
 		constexpr span(const Container& cont) : span(cont.data(), narrow<index_type>(cont.size()))
     {

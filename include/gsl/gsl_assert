@@ -19,6 +19,7 @@
 
 #include <exception>
 #include <stdexcept> // for logic_error
+#include "mbed_assert.h"
 
 //
 // make suppress attributes parse for some compilers
@@ -58,8 +59,8 @@
 // 2. GSL_THROW_ON_CONTRACT_VIOLATION: a gsl::fail_fast exception will be thrown
 // 3. GSL_UNENFORCED_ON_CONTRACT_VIOLATION: nothing happens
 //
-#if !(defined(GSL_THROW_ON_CONTRACT_VIOLATION) || defined(GSL_TERMINATE_ON_CONTRACT_VIOLATION) ||  \
-      defined(GSL_UNENFORCED_ON_CONTRACT_VIOLATION))
+#define GSL_TERMINATE_ON_CONTRACT_VIOLATION
+#if !(defined(GSL_THROW_ON_CONTRACT_VIOLATION) || defined(GSL_TERMINATE_ON_CONTRACT_VIOLATION) || defined(GSL_UNENFORCED_ON_CONTRACT_VIOLATION))
 #define GSL_TERMINATE_ON_CONTRACT_VIOLATION
 #endif
 
@@ -96,53 +97,50 @@ namespace gsl
 {
 struct fail_fast : public std::logic_error
 {
-    explicit fail_fast(char const* const message) : std::logic_error(message) {}
+    explicit fail_fast(char const *const message) : std::logic_error(message)
+    {
+    }
 };
 
 namespace details
 {
 #if defined(GSL_MSVC_USE_STL_NOEXCEPTION_WORKAROUND)
 
-    typedef void  (__cdecl *terminate_handler)();
+typedef void(__cdecl *terminate_handler)();
 
-    GSL_SUPPRESS(f.6) // NO-FORMAT: attribute
-    [[noreturn]] inline void __cdecl default_terminate_handler()
-    {
-        __fastfail(RANGE_CHECKS_FAILURE);
-    }
+GSL_SUPPRESS(f .6) // NO-FORMAT: attribute
+[[noreturn]] inline void __cdecl default_terminate_handler()
+{
+    __fastfail(RANGE_CHECKS_FAILURE);
+}
 
-    inline gsl::details::terminate_handler& get_terminate_handler() noexcept
-    {
-        static terminate_handler handler = &default_terminate_handler;
-        return handler;
-    }
+inline gsl::details::terminate_handler &get_terminate_handler() noexcept
+{
+    static terminate_handler handler = &default_terminate_handler;
+    return handler;
+}
 
 #endif
 
-    [[noreturn]] inline void terminate() noexcept
-    {
+[[noreturn]] inline void terminate() noexcept
+{
 #if defined(GSL_MSVC_USE_STL_NOEXCEPTION_WORKAROUND)
-        (*gsl::details::get_terminate_handler())();
+    (*gsl::details::get_terminate_handler())();
 #else
-        std::terminate();
+    std::terminate();
 #endif
-    }
+}
 
 #if defined(GSL_TERMINATE_ON_CONTRACT_VIOLATION)
 
-    template <typename Exception>
-    [[noreturn]] void throw_exception(Exception&&) noexcept
-    {
-        gsl::details::terminate();
-    }
+template <typename Exception>[[noreturn]] void throw_exception(Exception &&) noexcept
+{
+    gsl::details::terminate();
+}
 
 #else
 
-    template <typename Exception>
-    [[noreturn]] void throw_exception(Exception&& exception)
-    {
-        throw std::forward<Exception>(exception);
-    }
+template <typename Exception>[[noreturn]] void throw_exception(Exception &&exception) { throw std::forward<Exception>(exception); }
 
 #endif // GSL_TERMINATE_ON_CONTRACT_VIOLATION
 
@@ -151,15 +149,11 @@ namespace details
 
 #if defined(GSL_THROW_ON_CONTRACT_VIOLATION)
 
-#define GSL_CONTRACT_CHECK(type, cond)                                                             \
-    (GSL_LIKELY(cond) ? static_cast<void>(0)                                                       \
-                      : gsl::details::throw_exception(gsl::fail_fast(                              \
-                            "GSL: " type " failure at " __FILE__ ": " GSL_STRINGIFY(__LINE__))))
+#define GSL_CONTRACT_CHECK(type, cond) (GSL_LIKELY(cond) ? static_cast<void>(0) : gsl::details::throw_exception(gsl::fail_fast("GSL: " type " failure at " __FILE__ ": " GSL_STRINGIFY(__LINE__))))
 
 #elif defined(GSL_TERMINATE_ON_CONTRACT_VIOLATION)
 
-#define GSL_CONTRACT_CHECK(type, cond)                                                             \
-    (GSL_LIKELY(cond) ? static_cast<void>(0) : gsl::details::terminate())
+#define GSL_CONTRACT_CHECK(type, cond) MBED_ASSERT(cond) // (GSL_LIKELY(cond) ? static_cast<void>(0) : gsl::details::terminate())
 
 #elif defined(GSL_UNENFORCED_ON_CONTRACT_VIOLATION)
 

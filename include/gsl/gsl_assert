@@ -19,7 +19,9 @@
 
 #include <exception>
 #include <stdexcept> // for logic_error
+#ifdef __MBED__
 #include "mbed_assert.h"
+#endif
 
 //
 // make suppress attributes parse for some compilers
@@ -153,7 +155,11 @@ template <typename Exception>[[noreturn]] void throw_exception(Exception &&excep
 
 #elif defined(GSL_TERMINATE_ON_CONTRACT_VIOLATION)
 
+#ifdef __MBED__
 #define GSL_CONTRACT_CHECK(type, cond) MBED_ASSERT(cond) // (GSL_LIKELY(cond) ? static_cast<void>(0) : gsl::details::terminate())
+#else
+#define GSL_CONTRACT_CHECK(type, cond) (GSL_LIKELY(cond) ? static_cast<void>(0) : gsl::details::terminate())
+#endif
 
 #elif defined(GSL_UNENFORCED_ON_CONTRACT_VIOLATION)
 
